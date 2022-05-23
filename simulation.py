@@ -12,6 +12,7 @@ from matplotlib import animation
 
 
 show_animation = True
+dt = 0.01
 
 if show_animation:
     plt.ion()
@@ -78,11 +79,39 @@ class Robot_manipulator :
             ax.scatter([target[0]],[target[1]],marker='+',s=800,c="red")
             return Fig,ax
             
-    def draw_robot(self,fig,ax) :
-        line1, = ax.plot([0.,self.L1], [0.,0.], 'o-b', lw=10 , markersize=20)
-        line2, = ax.plot([self.L1,self.L1+self.L2], [0.,0.], 'o-r', lw=10 , markersize=20)
-        pt1    = ax.scatter([self.L1+self.L2],[0.],marker="$\in$",s=800,c="black",zorder=3)
+    def draw_robot(self) :
+        line1, = plt.plot([0.,self.L1], [0.,0.], 'o-b', lw=10 , markersize=20)
+        line2, = plt.plot([self.L1,self.L1+self.L2], [0.,0.], 'o-r', lw=10 , markersize=20)
+        pt1    = plt.scatter([self.L1+self.L2],[0.],marker="$\in$",s=800,c="black",zorder=3)
         return line1,line2,pt1
+
+    def plot_arm(self, target_x, target_y):  # pragma: no cover
+        shoulder = np.array([0, 0])
+        elbow = shoulder + np.array([self.L1 * np.cos(self.theta1s), self.L1 * np.sin(self.theta1s)])
+        wrist = elbow + np.array([self.L2 * np.cos(self.theta1s + self.theta2s), self.L2 * np.sin(self.theta1s + self.theta2s)])
+
+        if show_animation:
+            Fig=plt.figure(figsize=(8,8))
+            ax = Fig.add_subplot(111, aspect='equal')
+            plt.cla()
+
+            plt.plot([shoulder[0], elbow[0]], [shoulder[1], elbow[1]], 'k-')
+            plt.plot([elbow[0], wrist[0]], [elbow[1], wrist[1]], 'k-')
+
+            plt.plot(shoulder[0], shoulder[1], 'ro')
+            plt.plot(elbow[0], elbow[1], 'ro')
+            plt.plot(wrist[0], wrist[1], 'ro')
+
+            plt.plot([wrist[0], target_x], [wrist[1], target_y], 'g--')
+            plt.plot(target_x, target_y, 'g*')
+
+            plt.xlim(-2, 2)
+            plt.ylim(-2, 2)
+
+            plt.show()
+            plt.pause(dt)
+
+        return shoulder, elbow, wrist, ax
             
 
     def train(self,th1,th2,line1,line2,pt1,Fig,name):
@@ -97,8 +126,8 @@ class Robot_manipulator :
                 return line1,line2,pt1
             #issue here 
             anim = animation.FuncAnimation(Fig, animation_f,np.arange(0,len(th1)) , interval=50, blit=True,repeat = False)
-            plt.draw()
-            plt.show()
+            #plt.draw()
+            #plt.show()
             
             anim.save(name)
             

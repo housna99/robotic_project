@@ -11,13 +11,10 @@ robot.set_theta(np.pi,np.pi)
 
 HL_size= 10 # nbre neurons of Hiden layer
 network = NN(2, HL_size, 2)    
-target=[0.7,-0.2]
+target=[.7,0.2]
 trainer1 = OnlineTrainer(robot,network)
 
 show_animation = True
-if show_animation:
-    plt.ion()
-fig = plt.figure()
 
 
 
@@ -47,16 +44,11 @@ def main()  :
         print("starting the training")
         trainer.training = True
 
-
-        
-
-        Fig, ax = robot.draw_env(target)
-        line1, line2, pt1 = robot.draw_robot(Fig,ax)
+        ax = robot.plot_arm(target[0], target[1])
+        #line1, line2, pt1 = robot.draw_robot()
   
-        
-        name=input('name of the gif (ajoutez l extension) --> ')
-        robot.train(thetas1,thetas2,line1,line2,pt1,Fig,name) 
-        choice = input('Do you want to learn AGAIN ? (y/n) --> ')
+        #name=input('name of the gif (ajoutez l extension) --> ')
+        #robot.train(thetas1,thetas2,line1,line2,pt1,ax,name)
         
     
 

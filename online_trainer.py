@@ -58,11 +58,11 @@ class OnlineTrainer:
                 delta_t = (time.time()-debut)
 
                 grad = [
-                    2*(-1)*alpha_1*delta_t*(self.robot.L1*math.sin(selfthetas1)+self.robot.L2*math.sin(selfthetas1 + selfthetas2)+self.robot.L3*math.sin(selfthetas1 + selfthetas2 + selfthetas3))*(target[0] - position[0])
-                    -2*(-1)*alpha_2*delta_t*(self.robot.L1*math.cos(selfthetas1)+ self.robot.L2*math.cos(selfthetas1 + selfthetas2) + self.robot.L3*math.cos(selfthetas1 + selfthetas2 + selfthetas3))*(target[1] - position[1]),
+                    2*(-1)*alpha_1*delta_t*(self.robot.L1*math.sin(selfthetas1)+self.robot.L2*math.sin(selfthetas1 + selfthetas2))*(target[0] - position[0])
+                    -2*(-1)*alpha_2*delta_t*(self.robot.L1*math.cos(selfthetas1)+ self.robot.L2*math.cos(selfthetas1 + selfthetas2))*(target[1] - position[1]),
                     
-                    2*(-1)*alpha_1*delta_t*(self.robot.L2*math.sin(selfthetas1+ selfthetas2)+self.robot.L3*math.sin(selfthetas1+ selfthetas2+ selfthetas3))*(target[0] - position[0])
-                    -2*(-1)*alpha_2*delta_t*(self.robot.L2*math.cos(selfthetas1+ selfthetas2)+self.robot.L3*math.cos(selfthetas1+ selfthetas2+selfthetas3))*(target[1] - position[1]),
+                    2*(-1)*alpha_1*delta_t*(self.robot.L2*math.sin(selfthetas1+ selfthetas2))*(target[0] - position[0])
+                    -2*(-1)*alpha_2*delta_t*(self.robot.L2*math.cos(selfthetas1+ selfthetas2))*(target[1] - position[1])
                     
                                     
                 ]
