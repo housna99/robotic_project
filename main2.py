@@ -1,25 +1,36 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+from backpropagation import NN
+from simulation import Robot_manipulator 
+from online_trainer import OnlineTrainer
+import math
 
 # Similation parameters
 Kp = 15
 dt = 0.01
 
 # Link lengths
-l1 = l2 = 1
+#L1 = l2 = 1
 
 # Set initial goal position to the initial end-effector position
 x = 2
 y = 0
+#IA
 
+robot=Robot_manipulator()
+robot.set_theta(np.pi,np.pi/4)
+HL_size= 10 # nbre neurons of Hiden layer
+network = NN(2, HL_size, 2)    
+target=[0.5,0.5]
 show_animation = True
 
 if show_animation:
     plt.ion()
 
-
-def two_joint_arm(GOAL_TH=0.0, theta1=0.0, theta2=0.0):
+theta1=robot.get_theta()[0]
+theta2=robot.get_theta()[1]
+GOAL_TH=0.0
+def two_joint_arm(GOAL_TH , theta1 , theta2 ):
     """
     Computes the inverse kinematics for a planar 2DOF arm
     When out of bounds, rewrite x and y with last correct values
@@ -27,49 +38,49 @@ def two_joint_arm(GOAL_TH=0.0, theta1=0.0, theta2=0.0):
     global x, y
     #x_prev, y_prev = None, None
     while True:
-        try:
-            # if x is not None and y is not None:
-            #     x_prev = x
-            #     y_prev = y
-            if np.sqrt(x**2 + y**2) > (l1 + l2):
-                theta2_goal = 0
-            else:
-                theta2_goal = np.arccos(
-                    (x**2 + y**2 - l1**2 - l2**2) / (2 * l1 * l2))
-            tmp = np.math.atan2(l2 * np.sin(theta2_goal),
-                                (l1 + l2 * np.cos(theta2_goal)))
-            theta1_goal = np.math.atan2(y, x) - tmp
+        # try:
+        #     # if x is not None and y is not None:
+        #     #     x_prev = x
+        #     #     y_prev = y
+        #     if np.sqrt(x**2 + y**2) > (robot.L1 + robot.L2):
+        #         theta2_goal = 0
+        #     else:
+        #         theta2_goal = np.arccos(
+        #             (x**2 + y**2 - robot.L1**2 - robot.L2**2) / (2 * robot.L1  * robot.L2))
+        #     tmp = np.math.atan2(robot.L2 * np.sin(theta2_goal),
+        #                         (robot.L1 + robot.L2 * np.cos(theta2_goal)))
+        #     theta1_goal = np.math.atan2(y, x) - tmp
 
-            if theta1_goal < 0:
-                theta2_goal = -theta2_goal
-                tmp = np.math.atan2(l2 * np.sin(theta2_goal),
-                                    (l1 + l2 * np.cos(theta2_goal)))
-                theta1_goal = np.math.atan2(y, x) - tmp
+        #     if theta1_goal < 0:
+        #         theta2_goal = -theta2_goal
+        #         tmp = np.math.atan2(robot.L2 * np.sin(theta2_goal),
+        #                             (robot.L1 + robot.L2 * np.cos(theta2_goal)))
+        #         theta1_goal = np.math.atan2(y, x) - tmp
 
-            theta1 = theta1 + Kp * ang_diff(theta1_goal, theta1) * dt
-            theta2 = theta2 + Kp * ang_diff(theta2_goal, theta2) * dt
-        except ValueError as e:
-            print("Unreachable goal"+e)
-        # except TypeError:
-        #     x = x_prev
-        #     y = y_prev
-
+        #     theta1 = theta1 + Kp * ang_diff(theta1_goal, theta1) * dt
+        #     theta2 = theta2 + Kp * ang_diff(theta2_goal, theta2) * dt
+        # except ValueError as e:
+        #     print("Unreachable goal"+e)
+        # # except TypeError:
+        # #     x = x_prev
+        # #     y = y_prev
         wrist = plot_arm(theta1, theta2, x, y)
 
-        # check goal
-        d2goal = None
-        if x is not None and y is not None:
-            d2goal = np.hypot(wrist[0] - x, wrist[1] - y)
+        # # check goal
+        # d2goal = None
+        # if x is not None and y is not None:
+        #     d2goal = np.hypot(wrist[0] - x, wrist[1] - y)
 
-        if abs(d2goal) < GOAL_TH and x is not None:
-            return theta1, theta2
+        # if abs(d2goal) < GOAL_TH and x is not None:
+        #     return theta1, theta2
 
 
 def plot_arm(theta1, theta2, target_x, target_y):  # pragma: no cover
     shoulder = np.array([0, 0])
-    elbow = shoulder + np.array([l1 * np.cos(theta1), l1 * np.sin(theta1)])
-    wrist = elbow + \
-        np.array([l2 * np.cos(theta1 + theta2), l2 * np.sin(theta1 + theta2)])
+    for i in range(len(theta1)):
+        elbow = shoulder + np.array([robot.L1  * np.cos(theta1[i]), robot.L1  * np.sin(theta1[i])])
+        wrist = elbow + \
+            np.array([robot.L2 * np.cos(theta1[i] + theta2[i]), robot.L2 * np.sin(theta1[i] + theta2[i])])
 
     if show_animation:
         plt.cla()
@@ -107,12 +118,12 @@ def click(event):  # pragma: no cover
 def animation():
     from random import random
     global x, y
-    theta1 = theta2 = 0.0
+    trainer1 = OnlineTrainer(robot,network)
+    
     for i in range(5):
         x = 2.0 * random() - 1.0
         y = 2.0 * random() - 1.0
-        theta1, theta2 = two_joint_arm(
-            GOAL_TH=0.01, theta1=theta1, theta2=theta2)
+        theta1, theta2 =  trainer1.train(target)
 
 
 def main():  # pragma: no cover
@@ -121,9 +132,20 @@ def main():  # pragma: no cover
     # for stopping simulation with the esc key.
     fig.canvas.mpl_connect('key_release_event', lambda event: [
                            exit(0) if event.key == 'escape' else None])
-    two_joint_arm()
-
+    
+    target=[0.5,-1]
+    trainer1 = OnlineTrainer(robot,network)
+    thetas1=[]
+    thetas2=[]
+    thetas1,thetas2 = trainer1.train(target)
+   
+    
+    Fig, ax = robot.draw_env(target)
+    line1, line2, pt1 = robot.draw_robot(Fig,ax)
+    name='gif.gif'
+    robot.train(thetas1,thetas2,line1,line2,pt1,Fig,name)
 
 if __name__ == "__main__":
     # animation()
     main()
+    

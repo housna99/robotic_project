@@ -14,7 +14,7 @@ class NN:
     self.no = NO
 
     # initialize node-activations
-    self.ai, self.ah, self.ao = [], [], [] #i=inputs; #h=hidden layer , o=outputs layer
+    self.ai, self.ah, self.ao = [], [], []
     self.ai = [1.0]*self.ni
     self.ai[self.ni-1] =  random.uniform(-1, 1)
     self.ah = [1.0]*self.nh

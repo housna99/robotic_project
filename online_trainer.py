@@ -2,12 +2,6 @@ import time
 import math
 
 
-# def theta_s(x,y):
-#     if x>0:
-#         return 1*math.atan(1*y)
-#     if x<=0:
-#         return 1*math.atan(-1*y)
-
 class OnlineTrainer:
     def __init__(self, robot, NN):
         """
@@ -17,67 +11,70 @@ class OnlineTrainer:
         """
         self.robot = robot
         self.network = NN
+        self.running = True
+        self.training = False
 
         self.alpha = [1,1] # en 2ddl #[1/6,1/6,1/(math.pi)]  # normalition avec limite du monde cartesien = -3m � + 3m
 
-    def train(self, target):
+    def train(self, targett):
+        
         position = self.robot.get_coord_pince()
-
-        network_input = [0, 0, 0]#[1, 0.5,0] #[0, 0, 0]
-        network_input[0] =  (position[0]-target[0])*self.alpha[0] #self.alpha[0] #
-        network_input[1] = (position[1]-target[1])*self.alpha[1] #self.alpha[1] #s
-        #network_input[2] = (position[2]-target[2]-theta_s(position[0], position[1]))*self.alpha[2]
-        #Teta_t = 0
-        #robot_a_bouge = time.time()
-        #i=0
-        while self.running:
+        alpha_1 = self.alpha[0]
+        alpha_2 = self.alpha[1]
+        th1 = []
+        th2 = []
+             
+        target = [float(targett[0]),float(targett[1])]
+        #print(target)
+        #network_input[0] = 
+        #network_input[1] = 
+        robot_a_bouge = time.time()
+        i=0
+        while abs(position[0]-target[0]) > 0.001 and  abs(position[1]-target[1]) > 0.001 : 
             debut = time.time()
-            command = self.network.runNN(network_input) # propage erreur et calcul vitesses roues instant t
-            
-                      
-            alpha_x = self.alpha[0]
-            alpha_y = self.alpha[1]
-            #alpha_teta = 1.0/(math.pi)
-                        
-            crit_av= alpha_x*alpha_x*(position[0]-target[0])*(position[0]-target[0]) + alpha_y*alpha_y*(position[1]-target[1])*(position[1]-target[1]) #+ alpha_teta*alpha_teta*(position[2]-target[2]-theta_s(position[0], position[1]))*(position[2]-target[2]-theta_s(position[0], position[1]))  
-            
-                       
-            #self.robot.set_motor_velocity(command) # applique vitesses roues instant t,                     
-            #time.sleep(0.050) # attend delta t
-            position = self.robot.get_position() #  obtient nvlle pos robot instant t+1       
-            
+            network_input = [(position[0]-target[0])*self.alpha[0], (position[1]-target[1])*self.alpha[1]]
+            command = self.network.runNN(network_input) # propage erreur et calcul vitesses roues instant t  # Fonction à changer
+            crit_av= alpha_1*(position[0]-target[0])*(position[0]-target[0]) + alpha_2*(position[1]-target[1])*(position[1]-target[1]) 
+                                 
+            diff = time.time() - robot_a_bouge
+            thetas = self.robot.get_theta()
+            theta_temp1 = thetas[0] + command[0] * diff
+            theta_temp2 = thetas[1] + command[1] * diff
+            self.robot.set_theta(theta_temp1,theta_temp2 )    
+            robot_a_bouge = time.time()  
+            th1.append(theta_temp1)
+            th2.append(theta_temp2)
+            print('th1', th1)
+            print('len(th1): ',th1)
+            time.sleep(0.050) # attend delta t
+
+            position = self.robot.get_coord_pince() #  obtient nvlle pos robot instant t+1       # Fonction à changer             
             network_input[0] = (position[0]-target[0])*self.alpha[0]
             network_input[1] = (position[1]-target[1])*self.alpha[1]
-            #network_input[2] = (position[2]-target[2]-theta_s(position[0], position[1]))*self.alpha[2]
-            
-            crit_ap= alpha_x*alpha_x*(position[0]-target[0])*(position[0]-target[0]) + alpha_y*alpha_y*(position[1]-target[1])*(position[1]-target[1]) #+ alpha_teta*alpha_teta*(position[2]-target[2]-theta_s(position[0], position[1]))*(position[2]-target[2]-theta_s(position[0], position[1])) 
+            #i+=1
+            crit_ap= alpha_1*(position[0]-target[0])*(position[0]-target[0]) + alpha_2*(position[1]-target[1])*(position[1]-target[1]) 
+            selfthetas1,selfthetas2 = self.robot.get_theta()
 
             if self.training:
                 delta_t = (time.time()-debut)
 
                 grad = [
-                    (-2/delta_t)*(alpha_x*alpha_x*(position[0]-target[0])*delta_t*self.robot.r*math.cos(position[2])
-                    +alpha_y*alpha_y*(position[1]-target[1])*delta_t*self.robot.r*math.sin(position[2])
-                    -alpha_teta*alpha_teta*(position[2]-target[2]-theta_s(position[0], position[1]))*delta_t*self.robot.r/(2*self.robot.R)),
+                    2*(-1)*alpha_1*delta_t*(self.robot.L1*math.sin(selfthetas1)+self.robot.L2*math.sin(selfthetas1 + selfthetas2))*(target[0] - position[0])
+                    -2*(-1)*alpha_2*delta_t*(self.robot.L1*math.cos(selfthetas1)+ self.robot.L2*math.cos(selfthetas1 + selfthetas2))*(target[1] - position[1]),
+                    
+                    -2*delta_t*(self.robot.L2*math.sin(selfthetas1 + selfthetas2))*(target[0] - position[0])+2*delta_t*(target[1] - position[1])*(self.robot.L2*math.cos(selfthetas1 + selfthetas2))
 
-                    (-2/delta_t)*(alpha_x*alpha_x*(position[0]-target[0])*delta_t*self.robot.r*math.cos(position[2])
-                    +alpha_y*alpha_y*(position[1]-target[1])*delta_t*self.robot.r*math.sin(position[2])
-                    +alpha_teta*alpha_teta*(position[2]-target[2]-theta_s(position[0], position[1]))*delta_t*self.robot.r/(2*self.robot.R))
-                    ]
-
+                                    
+                ]
                 # The two args after grad are the gradient learning steps for t+1 and t
                 # si critere augmente on BP un bruit fction randon_update, sion on BP le gradient
                 
                 if (crit_ap <= crit_av) :
-                    self.network.backPropagate(grad, 0.2,0) # grad, pas d'app, moment
+                    self.network.backPropagate(grad, 0.5,0)# grad, pas d'app, moment
                 else :
                     #self.network.random_update(0.001)
-                    self.network.backPropagate(grad, 0.2, 0)
+                    self.network.backPropagate(grad, 0.5 ,0)
+                    
+   
                 
-        #self.robot.set_motor_velocity([0,0]) # stop  apres arret  du prog d'app
-        #position = self.robot.get_position() #  obtient nvlle pos robot instant t+1
-                #Teta_t=position[2]
-             
-                
-        
-        self.running = False
+        return th1,th2 
