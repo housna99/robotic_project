@@ -19,11 +19,11 @@ class Robot_manipulator :
 
     # Set initial goal position to the initial end-effector position
     
-    def __init__(self):
+    def __init__(self,l1,l2):
         self.theta1s = 0
         self.theta2s = 0
-        self.L1 = 1
-        self.L2 = 0.5
+        self.L1 = l1
+        self.L2 = l2
     
 
     def set_theta(self,nv_th1,nv_th2) : 
