@@ -44,8 +44,8 @@ class OnlineTrainer:
             robot_a_bouge = time.time()  
             th1.append(theta_temp1)
             th2.append(theta_temp2)
-            print('th1', th1)
-            print('len(th1): ',th1)
+            #print('th1', th1)
+            #print('len(th1): ',th1)
             time.sleep(0.050) # attend delta t
 
             position = self.robot.get_coord_pince() #  obtient nvlle pos robot instant t+1       # Fonction à changer             

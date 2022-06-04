@@ -9,25 +9,32 @@ Ref: P. I. Corke, "Robotics, Vision & Control", Springer 2017,
 (https://link.springer.com/book/10.1007/978-3-642-20144-8)
 """
 
+import json
 import matplotlib.pyplot as plt
 import numpy as np
+from sympy import true
 from backpropagation import NN
 from simulation import Robot_manipulator 
 from online_trainer import OnlineTrainer
-
+import math 
 
 # Similation parameters
 Kp = 15
 dt = 0.1
-
+robot=Robot_manipulator()
 # Link lengths
-l1 =  1
-l2 = 0.5
+l1=1
+l2=0.5
+robot.L1 =  l1
+robot.L2 = l2
 
 # Set initial goal position to the initial end-effector position
 x = float(input('target_x:'))
 y = float(input('target_y:'))
-
+goal=True
+if math.sqrt( x**2 + y**2) > (l1 + l2):
+    print("Unreachable goal")
+    goal = False
 show_animation = True
 
 if show_animation:
@@ -35,39 +42,11 @@ if show_animation:
 
 
 def two_joint_arm( theta1, theta2):
-    # """
-    # Computes the inverse kinematics for a planar 2DOF arm
-    # When out of bounds, rewrite x and y with last correct values
-    # """
-    # global x, y
-    # x_prev, y_prev = None, None
-    while True:
-        try:
-    #         if x is not None and y is not None:
-    #             x_prev = x
-    #             y_prev = y
-            if np.sqrt(x**2 + y**2) > (l1 + l2):
-                thetas2 = 0
-            
-    #         thetas1,thetas2 = trainer1.train(target)
-            
-        except ValueError as e:
-                print("Unreachable goal"+e)
-    #     except TypeError:
-    #         x = x_prev
-    #         y = y_prev
-        
+    while goal==True:
         thetas1,thetas2 = trainer1.train(target)
         for i in range(len(thetas1)):
 
             wrist = plot_arm(thetas1[i], thetas2[i], target_x, target_y)
-
-        # check goal
-        #d2goal = None
-        #if x is not None and y is not None:
-         #   d2goal = np.hypot(wrist[0] - x, wrist[1] - y)
-
-        #if abs(d2goal) < GOAL_TH and x is not None:
         return thetas1, thetas2
 
 robot=Robot_manipulator()
@@ -116,10 +95,6 @@ def plot_arm(theta1, theta2, target_x, target_y):  # pragma: no cover
     return wrist
 
 
-# def ang_diff(theta1, theta2):
-#     # Returns the difference between two angles in the range -pi to +pi
-#     return (theta1 - theta2 + np.pi) % (2 * np.pi) - np.pi
-
 
 def click(event):  # pragma: no cover
     global x, y
@@ -132,28 +107,40 @@ def animation():
     global x, y
     theta1=robot.get_theta()[0]
     theta2=robot.get_theta()[1]
-    # for i in range(5):
-    #     x = 2.0 * random() - 1.0
-    #     y = 2.0 * random() - 1.0
     theta1, theta2 = two_joint_arm(
              theta1, theta2 )
 
-        #for j in range(len(theta1))
-    # theta1, theta2 = two_joint_arm(
-    #         theta1, theta2)
-    # two_joint_arm(
-    #         theta1, theta2)
 
 
 def main():  # pragma: no cover
+    choice = input('Do you want to load previous network? (y/n) --> ')
+    if choice == 'y':
+        with open('last_w2.json') as fp:
+            json_obj = json.load(fp)
+        for i in range(2):
+            for j in range(HL_size):
+                network.wi[i][j] = json_obj["input_weights"][i][j]
+        for i in range(HL_size):
+            for j in range(2):
+                network.wo[i][j] = json_obj["output_weights"][i][j]
+    choice = ''
+
+    choice = input('Do you want to learn? (y/n) --> ')
+    
     fig = plt.figure()
     fig.canvas.mpl_connect("button_press_event", click)
     # for stopping simulation with the esc key.
     fig.canvas.mpl_connect('key_release_event', lambda event: [
                            exit(0) if event.key == 'escape' else None])
-    
-
-
-if __name__ == "__main__":
-    animation()
+    if (choice == 'y'):
+        print("starting learning")
+        animation()
+        
+if __name__ == "__main__" and goal==True:
     main()
+    json_obj = {"input_weights": network.wi, "output_weights": network.wo}
+    with open('last_w2.json', 'w') as fp:
+        json.dump(json_obj, fp)
+
+    print("The last weights have been stored in last_w.json")
+
